@@ -23,15 +23,15 @@ class CohereAPI:
                 response = self.client.generate(
                     model='command-r-plus-08-2024',
                     prompt=full_prompt,
-                    max_tokens=500,
-                    temperature=0.7,
+                    max_tokens=3900,
+                    temperature=0.3,
                     stop_sequences=["END"],
                     return_likelihoods="NONE"
                 )
                 progress.update(task, advance=100)
 
-            contract_text = response.generations[0].text
-            return contract_text
+            contract_code = response.generations[0].text
+            return contract_code
         
         # Catch HTTP errors (if using requests underneath) and generic exceptions
         except RequestException as e:

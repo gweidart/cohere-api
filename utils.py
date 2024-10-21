@@ -25,7 +25,7 @@ VULNERABILITIES = [
 
 COMPLEXITY = ['low', 'medium', 'high']
 
-def load_prompt_from_file(filename="prompt.txt"):
+def load_prompt_from_file(filename="preamble.txt"):
     """Loads the contract generation prompt from a .txt file in the CWD."""
     cwd = os.getcwd()
     prompt_path = os.path.join(cwd, filename)
