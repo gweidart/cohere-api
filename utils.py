@@ -34,6 +34,15 @@ def load_prompt_from_file(filename="prompt.txt"):
     with open(prompt_path, 'r') as file:
         return file.read()
 
+def select_random_params(max_vuln_count=5):
+    """Selects a random number and type of vulnerabilities."""
+    """Selects a random contract complexity level."""
+    complexity = random.choice(['low', 'medium', 'high'])
+    num_vulns = random.randint(1, max_vuln_count)
+    vulns = random.sample(VULNERABILITIES, num_vulns)
+    res = f"'input:'{complexity}, {vulns}"
+    return res
+
 def select_random_vulnerabilities(max_vuln_count=5):
     """Selects a random number and type of vulnerabilities."""
     # Randomly select 1 to max_vuln_count vulnerabilities
