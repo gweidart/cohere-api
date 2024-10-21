@@ -4,13 +4,13 @@ import random
 # List of vulnerabilities
 VULNERABILITIES = [
     'abiencoderv2-array', 'arbitrary-send-erc20', 'arbitrary-send-erc20-permit', 'arbitrary-send-eth',
-    'array-by-reference', 'controlled-array-length', 'assembly', 'assert-state-change', 'backdoor', 'weak-prng',
+    'array-by-reference', 'controlled-array-length', 'assert-state-change', 'backdoor', 'weak-prng',
     'boolean-cst', 'boolean-equal', 'shadowing-built-in', 'cache-array-length', 'codex', 'constant-function-asm',
-    'constant-function-state', 'pragma', 'controlled-delegatecall', 'costly-loop', 'constable-states', 
+    'constant-function-state', 'controlled-delegatecall', 'costly-loop', 'constable-states', 
     'immutable-states', 'cyclomatic-complexity', 'dead-code', 'delegatecall-loop', 'deprecated-standards',
     'divide-before-multiply', 'domain-separator-collision', 'encode-packed-collision', 'enum-conversion', 
     'external-function', 'function-init-state', 'erc20-interface', 'erc721-interface', 'incorrect-exp', 
-    'incorrect-return', 'solc-version', 'incorrect-equality', 'incorrect-unary', 'incorrect-using-for', 
+    'incorrect-return', 'incorrect-equality', 'incorrect-unary', 'incorrect-using-for', 
     'shadowing-local', 'locked-ether', 'low-level-calls', 'mapping-deletion', 'events-access', 'events-maths', 
     'missing-inheritance', 'missing-zero-check', 'incorrect-modifier', 'msg-value-loop', 'calls-loop', 
     'multiple-constructors', 'name-reused', 'naming-convention', 'out-of-order-retryable', 'variable-scope', 
@@ -23,6 +23,8 @@ VULNERABILITIES = [
     'unused-state', 'var-read-using-this', 'void-cst', 'write-after-write'
 ]
 
+COMPLEXITY = ['low', 'medium', 'high']
+
 def load_prompt_from_file(filename="prompt.txt"):
     """Loads the contract generation prompt from a .txt file in the CWD."""
     cwd = os.getcwd()
@@ -33,16 +35,18 @@ def load_prompt_from_file(filename="prompt.txt"):
     
     with open(prompt_path, 'r') as file:
         return file.read()
-
-def select_random_params(max_vuln_count=5):
-    """Selects a random number and type of vulnerabilities."""
-    """Selects a random contract complexity level."""
-    complexity = random.choice(['low', 'medium', 'high'])
-    num_vulns = random.randint(1, max_vuln_count)
-    vulns = random.sample(VULNERABILITIES, num_vulns)
-    res = f"'input:'{complexity}, {vulns}"
-    return res
-
+        
+def load_preamble_from_file(filename="preamble.txt"):
+    """Loads the contract generation prompt from a .txt file in the CWD."""
+    cwd = os.getcwd()
+    preamble_path = os.path.join(cwd, filename)
+    
+    if not os.path.exists(preamble_path):
+        raise FileNotFoundError(f"The preamble file {filename} was not found in the current working directory.")
+    
+    with open(preamble_path, 'r') as file:
+        return file.read()
+        
 def select_random_vulnerabilities(max_vuln_count=5):
     """Selects a random number and type of vulnerabilities."""
     # Randomly select 1 to max_vuln_count vulnerabilities
