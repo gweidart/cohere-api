@@ -4,6 +4,7 @@ import cohere
 import logging
 from utils import load_prompt_from_file
 from rich.progress import Progress
+from requests.exceptions import RequestException  # For catching HTTP-related errors
 
 class CohereAPI:
     def __init__(self, api_key):
@@ -31,7 +32,11 @@ class CohereAPI:
 
             contract_text = response.generations[0].text
             return contract_text
-        except cohere.CohereError as e:
-            logging.error(f"Error generating contract: {e}")
+        
+        # Catch HTTP errors (if using requests underneath) and generic exceptions
+        except RequestException as e:
+            logging.error(f"Network error while generating contract: {e}")
             return None
-
+        except Exception as e:
+            logging.error(f"An error occurred while generating contract: {e}")
+            return None

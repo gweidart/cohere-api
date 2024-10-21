@@ -1,17 +1,14 @@
-# main.py
-
 import os
 import argparse
-from rich.progress import Progress
 from rich.logging import RichHandler
 import logging
+from langchain_cohere import ChatCohere, create_cohere_react_agent
+from langchain.agents import AgentExecutor
 from cohere_api import CohereAPI
 from solidity_tools import SolidityValidator
 from storage import ContractStorage
-from utils import select_random_vulnerabilities, select_random_complexity
-from langchain.agents import initialize_agent, AgentType
+from utils import select_random_vulnerabilities, select_random_complexity, load_prompt_from_file
 from langchain.tools import Tool
-from langchain.llms import Cohere  # Import the Cohere LLM class from LangChain
 
 # Configure Rich logging
 logging.basicConfig(
@@ -25,68 +22,74 @@ def setup_react_agent(num_contracts):
     if not api_key:
         raise EnvironmentError("COHERE_API_KEY is not set in the environment. Please set it before running the script.")
     
-    # Initialize Cohere LLM with the API key
-    llm = Cohere(cohere_api_key=api_key)
+    # Initialize Cohere LLM with the API key for ReAct agent
+    cohere_llm = ChatCohere(cohere_api_key=api_key)
 
-    with Progress() as progress:
-        task = progress.add_task("[cyan]Setting up agent...", total=100)
+    # Define tools for the agent based on the task requirements
+    parameter_selection_tool = Tool(
+        name="Select Complexity and Vulnerabilities",
+        func=lambda _: {"complexity": select_random_complexity(), "vulnerabilities": select_random_vulnerabilities()},
+        description="Selects random contract complexity and vulnerabilities."
+    )
 
-        # Load the Cohere API (our wrapper for contract generation)
-        progress.update(task, advance=20)
-        cohere_api = CohereAPI(api_key)
+    def generate_contract_tool(params):
+        complexity = params["complexity"]
+        vulnerabilities = params["vulnerabilities"]
+        logging.info(f"Generating contract with Complexity: {complexity}, Vulnerabilities: {vulnerabilities}")
+        return cohere_llm.generate_contract(complexity, vulnerabilities)
+    
+    contract_generation_tool = Tool(
+        name="Generate Solidity Contract",
+        func=generate_contract_tool,
+        description="Generates a Solidity contract using the Cohere model."
+    )
 
-        # Loop to generate multiple contracts based on the argument -c
-        for i in range(num_contracts):
-            # Randomly select complexity and vulnerabilities for each contract
-            complexity = select_random_complexity()
-            vulnerabilities = select_random_vulnerabilities()
+    compile_contract_tool = Tool(
+        name="Compile Solidity Contract",
+        func=lambda contract_text: SolidityValidator(contract_text).compile_contract(),
+        description="Compiles the generated Solidity contract using the Solidity compiler."
+    )
 
-            # Define the Cohere tool for contract generation
-            get_assignment_tool = Tool(
-                name="Random Vulnerability assignment",
-                func=lambda: cohere_api.generate_contract(complexity, vulnerabilities),
-                description="Assigns a random mix of complexity and smart contract vulnerabilities for you to include when you generate Solidity smart contracts."
-            )
+    analyze_contract_tool = Tool(
+        name="Analyze Solidity Contract",
+        func=lambda contract_text: SolidityValidator(contract_text).analyze_security(f"contract_analysis"),
+        description="Analyzes the compiled Solidity contract for vulnerabilities using Slither."
+    )
 
-            # Define Solidity compilation and Slither analysis tools
-            solidity_tool = SolidityValidator("")
-            tools = [
-                Tool(
-                    name="Compile Solidity",
-                    func=solidity_tool.compile_contract,
-                    description="Compiles the generated Solidity contract."
-                ),
-                Tool(
-                    name="Run Slither Analysis",
-                    func=solidity_tool.analyze_security,
-                    description="Runs Slither security analysis on the compiled contract."
-                )
-            ]
+    save_to_file_tool = Tool(
+        name="Save Contract and Report",
+        func=lambda contract_text: save_contract_and_report(contract_text, "contract_analysis", "random_complexity", "vulnerable"),
+        description="Saves the generated contract and its report."
+    )
 
-            # Initialize the LangChain ReAct agent with the tools and the LLM
-            agent = initialize_agent(
-                tools=[get_assignment_tool, *tools],  # Add all tools to the agent
-                agent_type=AgentType.ZERO_SHOT_REACT_DESCRIPTION,  # Correct ReAct framework for tool selection
-                llm=llm,  # Pass the Cohere LLM into the agent
-                verbose=True
-            )
+    # Use create_cohere_react_agent to assemble the ReAct agent with tools
+    load_prompt = load_prompt_from_file()
+    prompt = load_prompt
+    tools = [parameter_selection_tool, contract_generation_tool, compile_contract_tool, analyze_contract_tool, save_to_file_tool]
+    react_agent = create_cohere_react_agent(llm=cohere_llm, tools=tools, prompt=prompt)
 
-            # Define the input task for the agent
-            input_task = f"Generate Solidity contract #{i+1} with vulnerabilities, compile it, and run a security analysis."
+    # Execute the agent for each contract to generate
+    for _ in range(num_contracts):
+        agent_executor = AgentExecutor(agent=react_agent, tools=tools, verbose=True)
+        agent_executor.invoke(input="")
 
-            # Execute the agent workflow with the input task
-            progress.update(task, advance=30)
-            agent.run(input_task)  # Pass the input task description to the agent
+def save_contract_and_report(contract_text, slither_report, complexity, vulnerabilities):
+    """
+    This function saves the generated contract and Slither report to appropriate files.
+    """
+    contract_storage = ContractStorage()  # Initialize the storage tool
+    contract_name = f"contract_{complexity}_{'_'.join(vulnerabilities)}"
 
-            progress.update(task, advance=50)
+    # Save the contract
+    contract_storage.save_contract(contract_text, complexity, "vulnerable", contract_name)
+
+    logging.info(f"Contract and report saved as {contract_name}")
+    return True
 
 if __name__ == "__main__":
-    # Set up argument parsing
-    parser = argparse.ArgumentParser(description="Generate and validate Solidity contracts.")
-    parser.add_argument("-c", "--contracts", type=int, default=1, help="Number of contracts to generate (default: 1)")
-
-    # Parse the arguments
+    parser = argparse.ArgumentParser(description="Run contract generation and validation using Cohere and LangChain.")
+    parser.add_argument("-c", "--contracts", type=int, default=1, help="Number of contracts to generate and validate.")
     args = parser.parse_args()
 
-    # Call the function with the number of contracts passed as an argument
+    # Setup and run the ReAct agent
     setup_react_agent(args.contracts)
