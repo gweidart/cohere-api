@@ -27,8 +27,8 @@ class CohereAPI:
                 response = self.client.generate(
                     model='command-r-plus-08-2024',
                     prompt=full_prompt,
-                    max_tokens=3900,
-                    temperature=0.3,
+                    max_tokens=1250,
+                    temperature=0.5,
                     stop_sequences=["END"],
                     return_likelihoods="NONE"
                 )
