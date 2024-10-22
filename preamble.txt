@@ -6,7 +6,6 @@ For each contract:
 	- Only save the contract if it compiles successfully and Slither identifies at least one issue. Your goal is to create a comprehensive and varied dataset, ensuring the contracts are unique and cover a range of potential vulnerabilities. 
 
 You have the following tools at your disposal:
-	- select_params
-	- compile_solidity 
-	- analyze_with_slither 
-	- save-to-file
+	- compile_solidity, 
+	- analyze_with_slither, 
+	- save_contract_and_report

@@ -1,5 +1,8 @@
 import os
 import random
+import logging
+
+logger = logging.getLogger(__name__)
 
 # List of vulnerabilities
 VULNERABILITIES = [
@@ -47,12 +50,26 @@ def load_preamble_from_file(filename="preamble.txt"):
     with open(preamble_path, 'r') as file:
         return file.read()
         
-def select_random_vulnerabilities(max_vuln_count=5):
-    """Selects a random number and type of vulnerabilities."""
-    # Randomly select 1 to max_vuln_count vulnerabilities
-    num_vulns = random.randint(1, max_vuln_count)
-    return random.sample(VULNERABILITIES, num_vulns)
+def get_params() -> str:
+    """Returns the contract complexity level and selects which vulnerabilities you need to include in the solidity source code you generate."""
+    try:
+        complexity = random.choice(COMPLEXITY)
 
-def select_random_complexity():
-    """Selects a random contract complexity level."""
-    return random.choice(['low', 'medium', 'high'])
+        # Randomly select vulnerabilities without repetition
+        selected_vulnerabilities = random.sample(VULNERABILITIES, k=random.randint(1, 5))
+
+        # Format the result
+        result = f"Complexity Level: {complexity.capitalize()}\n"
+        if selected_vulnerabilities:
+            result += "Identified Vulnerabilities:\n"
+            for vuln in selected_vulnerabilities:
+                result += f"- {vuln}\n"
+        else:
+            result += "No vulnerabilities identified."
+
+        logger.info(f"Assessed complexity as '{complexity}' with vulnerabilities: {selected_vulnerabilities if selected_vulnerabilities else 'None'}")
+        return result.strip()
+
+    except Exception as e:
+        logger.error(f"Error assessing complexity and vulnerabilities: {e}")
+        return f"Error assessing complexity and vulnerabilities: {e}"

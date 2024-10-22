@@ -3,10 +3,9 @@
 import os
 
 # Directory Paths
-OUTPUT_DIR = 'output_contracts'
-GENERATED_CONTRACTS_DIR = os.path.join(OUTPUT_DIR, 'generated')
-VALIDATED_CONTRACTS_DIR = os.path.join(OUTPUT_DIR, 'validated')
-LABELED_CONTRACTS_DIR = os.path.join(OUTPUT_DIR, 'labeled')
+OUTPUT_DIR = 'save_directory'
+GENERATED_CONTRACT_DIR = os.path.join(OUTPUT_DIR, 'contracts')
+GENERATED_REPORT_DIR = os.path.join(OUTPUT_DIR, 'reports')
 
 # Validation Tools
 SOLC_PATH = 'solc'  # Ensure solc is installed and in PATH
